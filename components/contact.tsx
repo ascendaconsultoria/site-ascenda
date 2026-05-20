@@ -91,6 +91,7 @@ export function Contact() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState("")
   const [cidades, setCidades] = useState<string[]>([])
   const [isLoadingCidades, setIsLoadingCidades] = useState(false)
   const [cityLoadError, setCityLoadError] = useState("")
@@ -142,6 +143,19 @@ export function Contact() {
 
     return () => controller.abort()
   }, [formData.estado])
+
+  useEffect(() => {
+    if (!isSuccess) {
+      return
+    }
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+    }
+  }, [isSuccess])
 
   const formatPhone = (value: string): string => {
     const numbers = value.replace(/\D/g, "")
@@ -218,6 +232,7 @@ export function Contact() {
     }
 
     setIsSubmitting(true)
+    setSubmitError("")
 
     try {
       const response = await fetch("/api/submit-form", {
@@ -243,10 +258,12 @@ export function Contact() {
 
       setIsSuccess(true)
       setFormData(initialFormData)
+      setErrors({})
       setCidades([])
+      setCityLoadError("")
     } catch (error) {
       console.error("Erro ao enviar:", error)
-      alert("Ocorreu um erro ao enviar o formulário. Tente novamente.")
+      setSubmitError("Não foi possível enviar o formulário agora. Confira os dados e tente novamente em alguns instantes.")
     } finally {
       setIsSubmitting(false)
     }
@@ -264,41 +281,6 @@ export function Contact() {
     if (errors[field]) {
       setErrors({ ...errors, [field]: undefined })
     }
-  }
-
-  if (isSuccess) {
-    return (
-      <section id="contato" className="py-16 lg:py-20 bg-[#0B0B0B] relative overflow-hidden">
-        <div className="absolute inset-0 grid-pattern opacity-20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-
-        <div className="container mx-auto px-4 md:px-6 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-lg mx-auto text-center"
-          >
-            <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-10 h-10 text-accent" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-              Formulário enviado com sucesso!
-            </h2>
-            <p className="text-white/70 mb-6">
-              Em breve nossa equipe entrará em contato para agendar sua análise.
-            </p>
-            <Button
-              onClick={() => setIsSuccess(false)}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              Enviar outro formulário
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-    )
   }
 
   return (
@@ -512,6 +494,12 @@ export function Contact() {
                   <span>Seus dados estão 100% seguros conosco.</span>
                 </div>
 
+                {submitError && (
+                  <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                    {submitError}
+                  </p>
+                )}
+
                 <Button
                   type="submit"
                   disabled={isSubmitting}
@@ -534,6 +522,56 @@ export function Contact() {
           </div>
         </motion.div>
       </div>
+
+      {isSuccess && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="success-modal-title"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="w-full max-w-md rounded-3xl border border-accent/25 bg-[#0B0B0B] p-7 text-center shadow-2xl sm:p-8"
+          >
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-accent/15 text-accent">
+              <CheckCircle2 className="h-9 w-9" />
+            </div>
+
+            <h2 id="success-modal-title" className="mb-3 text-2xl font-bold text-white sm:text-3xl">
+              Formulário enviado com sucesso!
+            </h2>
+
+            <p className="mb-7 text-sm leading-relaxed text-white/70 sm:text-base">
+              Recebemos suas informações. Em breve, nossa equipe entrará em contato para agendar sua análise.
+            </p>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button
+                type="button"
+                onClick={() => setIsSuccess(false)}
+                className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent/90"
+              >
+                Entendido
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsSuccess(false)
+                  window.scrollTo({ top: 0, behavior: "smooth" })
+                }}
+                className="rounded-full border-white/20 bg-transparent px-6 py-3 text-sm font-semibold text-white hover:bg-white/10 hover:text-white"
+              >
+                Voltar ao início
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </section>
   )
 }
